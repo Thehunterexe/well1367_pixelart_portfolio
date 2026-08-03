@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pixel Art Works</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Art Works | well1367</title>
 
-  <!-- 1. Подключаем пиксельный шрифт -->
+  <!-- Шрифты -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 
+  <!-- СТИЛИ ВНУТРИ HTML (чтобы GitHub Pages их точно не потерял) -->
   <style>
     :root {
       --bg-color: #0f0f11;
@@ -31,7 +32,7 @@
       position: relative;
     }
 
-    /* 2. Пиксельный фон (сетка) */
+    /* Пиксельный фон (сетка) */
     .pixel-bg::before {
       content: "";
       position: fixed;
@@ -105,7 +106,7 @@
       animation: fadeInUp 0.6s ease forwards;
     }
 
-    /* Задержки для карточек, чтобы появлялись по очереди */
+    /* Задержки для карточек */
     .item:nth-child(1) { animation-delay: 0.8s; }
     .item:nth-child(2) { animation-delay: 0.9s; }
     .item:nth-child(3) { animation-delay: 1.0s; }
@@ -185,10 +186,11 @@
 
   <footer>
     <!-- ЗАМЕНИ t.me/твой_ник на свой реальный ник в Телеграме -->
-    <a href="https://t.me/твой_ник" class="contact-link">Telegram:@well1367</a>
+    <a href="https://t.me/твой_ник" class="contact-link">Telegram: t.me/твой_ник</a>
 
     <!-- ЗАМЕНИ name@bronislavrucinskij.com на свой реальный Email -->
-    <a href="mailto:name@bronislavrucinskij.com" class="contact-link">Email:bronislavrucinskij@gmail.com</a>
+    <a href="mailto:name@bronislavrucinskij.com" class="contact-link">Email: написать мне</a>
   </footer>
 </body>
 </html>
+

@@ -141,6 +141,7 @@
       cursor: pointer;
       transition: all 0.3s ease;
     }
+    /* Анимации появления карточек */
     .item:nth-child(1) { animation-delay: 0.7s; }
     .item:nth-child(2) { animation-delay: 0.8s; }
     .item:nth-child(3) { animation-delay: 0.9s; }
@@ -161,7 +162,7 @@
       height: 100%;
       object-fit: cover;
       display: block;
-      image-rendering: pixelated;
+      image-rendering: pixelated; /* Сохраняет четкость пикселей */
     }
 
     footer {
@@ -200,6 +201,70 @@
 
     @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeIn { to { opacity: 1; } }
+
+    /* --- СТИЛИ ДЛЯ УВЕЛИЧЕНИЯ (МОДАЛЬНОЕ ОКНО) --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(5, 5, 7, 0.92); /* В тон твоему body */
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 1000;
+      display: none; /* Скрыто по умолчанию */
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-image-container {
+      position: relative;
+      max-width: 90%;
+      max-height: 90vh;
+      border: 1px solid var(--border);
+      background: var(--glass-bg);
+      padding: 4px;
+      box-shadow: 0 0 30px rgba(255, 77, 77, 0.3);
+      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-image-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+      image-rendering: pixelated; /* ГЛАВНОЕ: сохраняет пиксели четкими */
+      filter: drop-shadow(0 0 10px rgba(255, 77, 77, 0.4));
+    }
+
+    .close-modal {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      color: var(--text);
+      font-family: var(--font-pixel);
+      font-size: 24px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      transition: color 0.3s;
+      user-select: none;
+    }
+
+    .close-modal:hover {
+      color: var(--accent);
+      transform: scale(1.1);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.8) translateY(20px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -216,6 +281,7 @@
       <h2 class="gallery-title">Мои работы <span class="emoji">🎨</span></h2>
       
       <div class="gallery">
+        <!-- Карточки галереи -->
         <div class="item"><img src="images/art1.png" alt="Арт 1"></div>
         <div class="item"><img src="images/art2.png" alt="Арт 2"></div>
         <div class="item"><img src="images/art3.png" alt="Арт 3"></div>
@@ -233,18 +299,61 @@
     <a href="mailto:bronislavrucinskij@gmail.com" class="contact-link">Email:bronislavrucinskij@gmail.com</a>
   </footer>
 
-  <script>
-    const area = document.getElementById('cursor-area');
+  <!-- МОДАЛЬНОЕ ОКНО (УВЕЛИЧЕНИЕ) -->
+  <div id="zoomModal" class="modal-overlay">
+    <div class="modal-image-container">
+      <span class="close-modal" onclick="closeZoom()">закрыть </span>
+      <img id="zoomImg" src="" alt="Full size art">
+    </div>
+  </div>
 
+  <script>
+    // --- ЛОГИКА УВЕЛИЧЕНИЯ КАРТИНОК ---
+    const modal = document.getElementById('zoomModal');
+    const modalImg = document.getElementById('zoomImg');
+
+    // Находим все элементы галереи
+    const items = document.querySelectorAll('.gallery .item');
+
+    items.forEach(item => {
+      item.addEventListener('click', () => {
+        const img = item.querySelector('img');
+        if (img) {
+          modalImg.src = img.src;
+          modal.classList.add('active');
+          document.body.style.overflow = 'hidden'; // Блокируем прокрутку страницы
+        }
+      });
+    });
+
+    function closeZoom() {
+      modal.classList.remove('active');
+      document.body.style.overflow = ''; // Возвращаем прокрутку
+    }
+
+    // Закрытие по клику на темный фон
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeZoom();
+      }
+    });
+
+    // Закрытие по клавише Esc
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeZoom();
+      }
+    });
+
+    // --- ТВОЙ СУЩЕСТВУЮЩИЙ КОД ДЛЯ КУРСОРА ---
+    const area = document.getElementById('cursor-area');
     document.addEventListener('mousemove', (e) => {
       const x = e.clientX;
       const y = e.clientY;
-
       area.style.left = x + 'px';
       area.style.top = y + 'px';
       area.style.opacity = '1';
     });
-
     document.addEventListener('mouseleave', () => {
       area.style.opacity = '0';
     });

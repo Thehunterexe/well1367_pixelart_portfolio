@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Art Works | well1367</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #0a0a0f;
+      --bg-gradient: radial-gradient(1200px 800px at 10% -10%, rgba(80, 60, 120, 0.15), transparent 60%),
+                     radial-gradient(1000px 700px at 90% 10%, rgba(120, 60, 100, 0.12), transparent 60%),
+                     radial-gradient(800px 600px at 50% 100%, rgba(60, 80, 120, 0.1), transparent 60%);
+      --glass-bg: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #e8e8e8;
+      --accent: #ff6b6b;
+      --font-main: 'Inter', Arial, sans-serif;
+      --font-pixel: 'Press Start 2P', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background-color: var(--bg-color);
+      background-image: var(--bg-gradient);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: var(--font-main);
+      overflow-x: hidden;
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      cursor: default;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .base-bg {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: -2;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 52px 52px;
+      opacity: 0.35;
+      transition: opacity 0.3s ease, background-color 0.3s ease;
+      pointer-events: none;
+      will-change: opacity;
+    }
+
+    header {
+      text-align: center;
+      padding: clamp(40px, 8vw, 60px) 20px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 1s cubic-bezier(0.22, 1, 0.36, 1) forwards 0.1s;
+      position: relative;
+      z-index: 2;
+    }
+    h1 {
+      font-family: var(--font-pixel);
+      font-size: clamp(24px, 6vw, 36px);
+      letter-spacing: 0.1em;
+      margin: 0;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+      line-height: 1.3;
+    }
+    p.subtitle {
+      margin-top: 12px;
+      font-family: var(--font-pixel);
+      font-size: clamp(12px, 3.5vw, 16px);
+      opacity: 0.85;
+    }
+
+    .glass-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: clamp(20px, 5vw, 30px);
+      box-shadow: 0 12px 48px rgba(0,0,0,0.55);
+      opacity: 0;
+      transform: scale(0.95);
+      animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards 0.4s;
+      max-width: 960px;
+      margin: 0 auto 50px auto;
+      position: relative;
+      z-index: 2;
+      will-change: opacity, transform;
+    }
+
+    .gallery-title {
+      font-family: var(--font-pixel);
+      font-size: clamp(18px, 4.5vw, 22px);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .gallery-title .emoji {
+      font-size: clamp(22px, 5vw, 28px);
+      image-rendering: pixelated;
+      line-height: 1;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(40vw, 160px), 1fr));
+      gap: clamp(12px, 3vw, 18px);
+    }
+
+    .item {
+      border-radius: 12px;
+      overflow: hidden;
+      background: #14141a;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.06);
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+      will-change: transform;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .item:nth-child(1) { animation-delay: 0.5s; }
+    .item:nth-child(2) { animation-delay: 0.55s; }
+    .item:nth-child(3) { animation-delay: 0.6s; }
+    .item:nth-child(4) { animation-delay: 0.65s; }
+    .item:nth-child(5) { animation-delay: 0.7s; }
+    .item:nth-child(6) { animation-delay: 0.75s; }
+    .item:nth-child(7) { animation-delay: 0.8s; }
+    .item:nth-child(8) { animation-delay: 0.85s; }
+
+    .item:hover,
+    .item:active {
+      transform: translateY(-4px) scale(1.02);
+      border-color: var(--accent);
+      box-shadow: 0 8px 24px rgba(255, 107, 107, 0.22);
+    }
+
+    .item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      image-rendering: pixelated;
+      pointer-events: none;
+    }
+
+    footer {
+      margin-top: auto;
+      text-align: center;
+      padding: clamp(30px, 6vw, 40px) 20px;
+      opacity: 0;
+      animation: fadeIn 0.8s ease forwards 1.2s;
+      width: 100%;
+      box-sizing: border-box;
+      position: relative;
+      z-index: 2;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .contact-link {
+      font-family: var(--font-pixel);
+      font-size: clamp(12px, 3vw, 14px);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: #e8e8e8;
+      text-shadow: 0 0 5px rgba(255,255,255,0.08);
+      transition: color 0.25s ease, transform 0.2s ease;
+      white-space: nowrap;
+    }
+    .contact-link:hover,
+    .contact-link:active {
+      color: #ff6b6b;
+      transform: scale(1.05);
+    }
+
+    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { to { opacity: 1; } }
+
+    /* --- МОДАЛЬНОЕ ОКНО --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(10, 10, 15, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 1000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: clamp(10px, 4vw, 20px);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-image-container {
+      position: relative;
+      width: 100%;
+      max-width: min(90vw, 90vh);
+      max-height: 90vh;
+      border: 1px solid var(--border);
+      background: var(--glass-bg);
+      padding: 4px;
+      box-shadow: 0 0 30px rgba(255, 107, 107, 0.28);
+      animation: popIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-image-container img {
+      width: 100%;
+      height: auto;
+      max-width: 100%;
+      max-height: 90vh;
+      display: block;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 0 10px rgba(255, 107, 107, 0.35));
+    }
+
+    .close-modal {
+      position: absolute;
+      top: -36px;
+      right: 0;
+      color: var(--text);
+      font-family: var(--font-pixel);
+      font-size: clamp(18px, 4vw, 24px);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: color 0.2s, transform 0.2s;
+      user-select: none;
+      padding: 4px 8px;
+    }
+
+    .close-modal:hover,
+    .close-modal:active {
+      color: var(--accent);
+      transform: scale(1.05);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.85) translateY(10px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    /* --- КНОПКА ПЕРЕКЛЮЧЕНИЯ РЕЖИМОВ --- */
+    .mode-toggle {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      z-index: 999;
+      font-family: var(--font-pixel);
+      font-size: clamp(12px, 3vw, 14px);
+      text-transform: uppercase;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 0.2s, transform 0.2s, color 0.2s;
+    }
+    .mode-toggle:hover,
+    .mode-toggle:active {
+      background: rgba(255,255,255,0.12);
+      transform: scale(1.03);
+      color: #fff;
+    }
+
+    /* === ЛЁГКАЯ ВЕРСИЯ === */
+    body.lite-mode .base-bg,
+    body.lite-mode .glass-panel {
+      display: none !important;
+    }
+
+    body.lite-mode {
+      background: #050508;
+      color: #f0f0f0;
+      background-image: none !important;
+    }
+
+    body.lite-mode header,
+    body.lite-mode main,
+    body.lite-mode footer {
+      padding: 16px;
+      max-width: 100%;
+      margin: 0;
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+
+    body.lite-mode h1 {
+      font-family: sans-serif;
+      font-size: 22px;
+      text-shadow: none;
+    }
+
+    body.lite-mode .subtitle {
+      font-family: sans-serif;
+      font-size: 14px;
+    }
+
+    body.lite-mode .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+    }
+
+    body.lite-mode .item {
+      border-radius: 6px;
+      overflow: hidden;
+      background: #111;
+      border: 1px solid #333;
+      aspect-ratio: 1 / 1;
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none;
+    }
+
+    body.lite-mode .item img {
+      image-rendering: auto;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    body.lite-mode .contact-link {
+      font-family: sans-serif;
+      font-size: 14px;
+      text-shadow: none;
+      transition: none;
+    }
+
+    body.lite-mode .modal-overlay {
+      background: rgba(5,5,8,0.92);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    body.lite-mode .modal-image-container {
+      border: 1px solid #444;
+      background: #111;
+      box-shadow: none;
+      padding: 2px;
+    }
+    body.lite-mode .modal-image-container img {
+      filter: none;
+      image-rendering: auto;
+    }
+    body.lite-mode .close-modal {
+      font-family: sans-serif;
+      font-size: 16px;
+      color: #ddd;
+    }
+
+    body.lite-mode .mode-toggle {
+      display: block !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="base-bg"></div>
+
+  <header>
+    <h1>PIXEL ART WORKS</h1>
+    <p class="subtitle">Автор well1367:3</p>
+  </header>
+
+  <main style="padding: 0 20px; flex: 1;">
+    <div class="glass-panel">
+      <h2 class="gallery-title">Мои работы <span class="emoji">🎨</span></h2>
+      
+      <div class="gallery">
+        <div class="item"><img src="images/art1.png" alt="Арт 1"></div>
+        <div class="item"><img src="images/art2.png" alt="Арт 2"></div>
+        <div class="item"><img src="images/art3.png" alt="Арт 3"></div>
+        <div class="item"><img src="images/art4.png" alt="Арт 4"></div>
+        <div class="item"><img src="images/art5.png" alt="Арт 5"></div>
+        <div class="item"><img src="images/art6.png" alt="Арт 6"></div>
+        <div class="item"><img src="images/art7.png" alt="Арт 7"></div>
+        <div class="item"><img src="images/art8.png" alt="Арт 8"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <a href="https://t.me/well1367" class="contact-link">Telegram:@well1367</a>
+    <a href="mailto:bronislavrucinskij@gmail.com" class="contact-link">Email:bronislavrucinskij@gmail.com</a>
+  </footer>
+
+  <!-- МОДАЛЬНОЕ ОКНО -->
+  <div id="zoomModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Просмотр изображения">
+    <div class="modal-image-container">
+      <span class="close-modal" onclick="closeZoom()">закрыть</span>
+      <img id="zoomImg" src="" alt="Full size art">
+    </div>
+  </div>
+
+  <!-- КНОПКА ПЕРЕКЛЮЧЕНИЯ РЕЖИМОВ -->
+  <button id="modeToggle" class="mode-toggle" type="button">Лёгкая версия</button>
+
+  <script>
+    // --- МОДАЛКА ---
+    const modal = document.getElementById('zoomModal');
+    const modalImg = document.getElementById('zoomImg');
+    const items = document.querySelectorAll('.gallery .item');
+
+    items.forEach(item => {
+      item.addEventListener('click', () => {
+        const img = item.querySelector('img');
+        if (!img) return;
+        modalImg.src = img.src;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    function closeZoom() {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeZoom();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeZoom();
+    });
+
+    // --- ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ---
+    const modeToggle = document.getElementById('modeToggle');
+    const body = document.body;
+
+    function updateToggleText() {
+      const isLite = body.classList.contains('lite-mode');
+      modeToggle.textContent = isLite ? 'Обычная версия' : 'Лёгкая версия';
+    }
+
+    modeToggle.addEventListener('click', () => {
+      body.classList.toggle('lite-mode');
+      updateToggleText();
+    });
+
+    updateToggleText();
+  </script>
+</body>
+</html>

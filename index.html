@@ -1112,6 +1112,11 @@
         <span>Количество реакций:</span>
         <span id="reactionCount">0</span>
       </div>
+
+      <button type="button" id="userCodeBtn" title="Код пользователя для синхронизации лайков между устройствами"
+        style="margin-top:10px;background:none;border:1px solid currentColor;border-radius:8px;padding:4px 10px;color:inherit;font:inherit;cursor:pointer;opacity:.75;">
+        👤 Код
+      </button>
     </div>
   </footer>
 
@@ -1499,7 +1504,7 @@
         //    id пользователя храним в localStorage — он постоянен на устройстве,
         //    а список "кто лайкнул" живёт в облаке.
         const uid = getOrCreateUserId();
-        const { data: likedRow, error: e2 } = await sb
+        const {  likedRow, error: e2 } = await sb
           .from('liked_users').select('users').eq('art_id', artId).single();
         let users = Array.isArray(likedRow?.users) ? likedRow.users.slice() : [];
         if (wasLiked) {
@@ -1520,8 +1525,17 @@
       refreshFooterStats();
     };
 
-    // Уникальный id этого посетителя (создаётся один раз и хранится на устройстве)
+    // ==== Идентификация пользователя между устройствами ====
+    // На каждом устройстве есть свой ID. Чтобы лайки синхронизировались
+    // между телефоном и компьютером — введите один и тот же "код пользователя"
+    // на обоих устройствах (кнопка «Код» в футере сайта).
+    window.getUserCode = function () {
+      return (localStorage.getItem('well1367_usercode') || '').trim();
+    };
+
     function getOrCreateUserId() {
+      const code = window.getUserCode();
+      if (code) return 'c_' + code; // общий код: одинаков на всех устройствах
       let uid = localStorage.getItem('well1367_uid');
       if (!uid) {
         uid = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
@@ -1529,6 +1543,38 @@
       }
       return uid;
     }
+
+    // Кнопка ввода кода пользователя (в футере рядом со счётчиками)
+    (function initUserCodeButton() {
+      const btn = document.getElementById('userCodeBtn');
+      if (!btn) return;
+      const refreshLabel = () => {
+        const c = window.getUserCode();
+        btn.textContent = c ? '👤 ' + c : '👤 Код';
+        btn.title = c
+          ? 'Код пользователя: ' + c + ' (нажмите, чтобы изменить)'
+          : 'Введите один и тот же код на всех ваших устройствах, чтобы лайки синхронизировались';
+      };
+      btn.addEventListener('click', () => {
+        const cur = window.getUserCode();
+        const val = prompt(
+          'Придумайте ЛЮБОЙ код (например: maxim1367).\n' +
+          'Введите ЕГО ЖЕ на телефоне и на компьютере — тогда лайки будут общие.\n' +
+          'Оставьте пустым, чтобы сбросить.',
+          cur
+        );
+        if (val === null) return; // отмена
+        const clean = val.trim().replace(/[^A-Za-zА-Яа-я0-9_-]/g, '').slice(0, 32);
+        if (clean) {
+          localStorage.setItem('well1367_usercode', clean);
+        } else {
+          localStorage.removeItem('well1367_usercode');
+        }
+        refreshLabel();
+        loadMyLikesFromCloud(); // сразу перерисовать лайки под нового пользователя
+      });
+      refreshLabel();
+    })();
 
     // При загрузке подтягиваем из облака, какие арты уже лайкал ЭТОТ пользователь
     async function loadMyLikesFromCloud() {

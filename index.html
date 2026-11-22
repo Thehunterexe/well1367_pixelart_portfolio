@@ -1349,4 +1349,201 @@
     updateToggleText();
   </script>
 </body>
+    updateToggleText();
+  </script>
+
+  <!-- === СИНХРОНИЗАЦИЯ ЛАЙКОВ И ПОСЕЩЕНИЙ (SUPABASE) === -->
+  <script type="module">
+    import { createClient } from 'https://jsdelivr.net';
+
+    // ЗАМЕНИТЕ НА ВАШ PROJECT URL ИЗ SUPABASE (Settings -> Data API)
+    const SUPABASE_URL = 'https://ВАШ_КОД_ПРОЕКТА.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_85igzGFOPWb0gn2rbj7aNQ_7XnedNj6';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    function findTextNode(text) {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) {
+        if (node.nodeValue && node.nodeValue.includes(text)) return node;
+      }
+      return null;
+    }
+
+    function updateUI(visits, likes) {
+      const vNode = findTextNode('Заходов на сайт:');
+      const lNode = findTextNode('Количество реакций:');
+      if (vNode) vNode.nodeValue = vNode.nodeValue.replace(/Заходов на сайт:\s*\d+/, `Заходов на сайт: ${visits}`);
+      if (lNode) lNode.nodeValue = lNode.nodeValue.replace(/Количество реакций:\s*\d+/, `Количество реакций: ${likes}`);
+    }
+
+    let currentLikes = 0;
+    let currentVisits = 0;
+
+    async function initStats() {
+      const { data, error } = await supabase.from('stats').select('*');
+      if (error || !data) {
+        console.error('Ошибка Supabase:', error);
+        return;
+      }
+
+      currentVisits = Number(data.find(r => r.name === 'visits')?.count || 0);
+      currentLikes = Number(data.find(r => r.name === 'likes')?.count || 0);
+
+      if (!sessionStorage.getItem('well1367_visited')) {
+        currentVisits += 1;
+        sessionStorage.setItem('well1367_visited', 'true');
+        await supabase.from('stats').update({ count: currentVisits }).eq('name', 'visits');
+      }
+
+      updateUI(currentVisits, currentLikes);
+    }
+
+    window.toggleArtLike = async function (artId = 'global', btnEl = null) {
+      const storageKey = `well1367_liked_${artId}`;
+      const alreadyLiked = localStorage.getItem(storageKey) === 'true';
+      const delta = alreadyLiked ? -1 : 1;
+
+      const { data } = await supabase.from('stats').select('count').eq('name', 'likes').single();
+      currentLikes = Math.max(0, Number(data?.count || 0) + delta);
+
+      const { error } = await supabase.from('stats').update({ count: currentLikes }).eq('name', 'likes');
+      if (!error) {
+        if (alreadyLiked) {
+          localStorage.removeItem(storageKey);
+        } else {
+          localStorage.setItem(storageKey, 'true');
+        }
+        if (btnEl) {
+          btnEl.textContent = alreadyLiked ? '🤍 Нравится' : '❤️ Лайкнуто';
+          btnEl.style.borderColor = alreadyLiked ? '#666' : '#ff4d6d';
+        }
+        updateUI(currentVisits, currentLikes);
+      }
+    };
+
+    const observer = new MutationObserver(() => {
+      const modalText = findTextNode('Просмотр арта');
+      if (modalText && modalText.parentElement) {
+        const modalBox = modalText.parentElement.parentElement || modalText.parentElement;
+        if (modalBox && !modalBox.querySelector('.auto-like-btn')) {
+          const img = modalBox.querySelector('img');
+          const artKey = img ? img.src.split('/').pop() : 'modal_art';
+          const isLiked = localStorage.getItem(`well1367_liked_${artKey}`) === 'true';
+
+          const btn = document.createElement('button');
+          btn.className = 'auto-like-btn';
+          btn.textContent = isLiked ? '❤️ Лайкнуто' : '🤍 Нравится';
+          btn.style.cssText = `
+            margin: 12px auto; display: block; padding: 8px 16px;
+            background: #1e1e24; color: #fff; border: 2px solid ${isLiked ? '#ff4d6d' : '#666'};
+            font-family: inherit; font-size: 14px; cursor: pointer;
+          `;
+          btn.onclick = () => window.toggleArtLike(artKey, btn);
+          modalBox.appendChild(btn);
+        }
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    initStats();
+  </script>
+</body>
 </html>
+<!-- === СИНХРОНИЗАЦИЯ ЛАЙКОВ И ПОСЕЩЕНИЙ (SUPABASE) === -->
+<script type="module">
+  import { createClient } from 'https://esm.sh';
+
+  const SUPABASE_URL = 'https://supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_85igzGFOPWb0gn2rbj7aNQ_7XnedNj6';
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  function findTextNode(text) {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.nodeValue && node.nodeValue.includes(text)) return node;
+    }
+    return null;
+  }
+
+  function updateUI(visits, likes) {
+    const vNode = findTextNode('Заходов на сайт:');
+    const lNode = findTextNode('Количество реакций:');
+    if (vNode) vNode.nodeValue = vNode.nodeValue.replace(/Заходов на сайт:\s*\d+/, `Заходов на сайт: ${visits}`);
+    if (lNode) lNode.nodeValue = lNode.nodeValue.replace(/Количество реакций:\s*\d+/, `Количество реакций: ${likes}`);
+  }
+
+  let currentLikes = 0;
+  let currentVisits = 0;
+
+  async function initStats() {
+    const { data, error } = await supabase.from('stats').select('*');
+    if (error || !data) {
+      console.error('Ошибка Supabase:', error);
+      return;
+    }
+
+    currentVisits = Number(data.find(r => r.name === 'visits')?.count || 0);
+    currentLikes = Number(data.find(r => r.name === 'likes')?.count || 0);
+
+    if (!sessionStorage.getItem('well1367_visited')) {
+      currentVisits += 1;
+      sessionStorage.setItem('well1367_visited', 'true');
+      await supabase.from('stats').update({ count: currentVisits }).eq('name', 'visits');
+    }
+
+    updateUI(currentVisits, currentLikes);
+  }
+
+  window.toggleArtLike = async function (artId = 'global', btnEl = null) {
+    const storageKey = `well1367_liked_${artId}`;
+    const alreadyLiked = localStorage.getItem(storageKey) === 'true';
+    const delta = alreadyLiked ? -1 : 1;
+
+    const { data } = await supabase.from('stats').select('count').eq('name', 'likes').single();
+    currentLikes = Math.max(0, Number(data?.count || 0) + delta);
+
+    const { error } = await supabase.from('stats').update({ count: currentLikes }).eq('name', 'likes');
+    if (!error) {
+      if (alreadyLiked) {
+        localStorage.removeItem(storageKey);
+      } else {
+        localStorage.setItem(storageKey, 'true');
+      }
+      if (btnEl) {
+        btnEl.textContent = alreadyLiked ? '🤍 Нравится' : '❤️ Лайкнуто';
+        btnEl.style.borderColor = alreadyLiked ? '#666' : '#ff4d6d';
+      }
+      updateUI(currentVisits, currentLikes);
+    }
+  };
+
+  const observer = new MutationObserver(() => {
+    const modalText = findTextNode('Просмотр арта');
+    if (modalText && modalText.parentElement) {
+      const modalBox = modalText.parentElement.parentElement || modalText.parentElement;
+      if (modalBox && !modalBox.querySelector('.auto-like-btn')) {
+        const img = modalBox.querySelector('img');
+        const artKey = img ? img.src.split('/').pop() : 'modal_art';
+        const isLiked = localStorage.getItem(`well1367_liked_${artKey}`) === 'true';
+
+        const btn = document.createElement('button');
+        btn.className = 'auto-like-btn';
+        btn.textContent = isLiked ? '❤️ Лайкнуто' : '🤍 Нравится';
+        btn.style.cssText = `
+          margin: 12px auto; display: block; padding: 8px 16px;
+          background: #1e1e24; color: #fff; border: 2px solid ${isLiked ? '#ff4d6d' : '#666'};
+          font-family: inherit; font-size: 14px; cursor: pointer;
+        `;
+        btn.onclick = () => window.toggleArtLike(artKey, btn);
+        modalBox.appendChild(btn);
+      }
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+  initStats();
+</script>

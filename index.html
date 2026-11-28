@@ -427,7 +427,7 @@
     }
 
     .item.clicked {
-      animation: artReaction 0.6s cubic-bezier(0.22, 1.4, 0.36, 1);
+      animation: artReaction 0.6s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     @keyframes artReaction {
@@ -1193,18 +1193,6 @@
       } catch {}
     }
 
-    function updateReactionCount() {
-      if (window.SITE_STATS) {
-        reactionCount.textContent = Number(window.SITE_STATS.likes || 0).toLocaleString('ru-RU');
-        return;
-      }
-
-      const likes = getLikes();
-      const total = Object.values(likes).filter(Boolean).length;
-
-      reactionCount.textContent = total.toLocaleString('ru-RU');
-    }
-
     let speechTimer;
 
     avatarButton.addEventListener('click', () => {
@@ -1374,21 +1362,6 @@
       return Boolean(sb);
     }
 
-    function refreshFooterStats() {
-      visitCount.textContent = Number(window.SITE_STATS.visits || 0).toLocaleString('ru-RU');
-      reactionCount.textContent = Number(window.SITE_STATS.likes || 0).toLocaleString('ru-RU');
-
-      document.querySelectorAll('.item').forEach(item => {
-        const artId = item.dataset.artId;
-        const count = Number(window.SITE_STATS.artLikes[artId] || 0);
-        const label = item.querySelector('.like-count');
-
-        if (label) {
-          label.textContent = count.toLocaleString('ru-RU');
-        }
-      });
-    }
-
     function getOrCreateUserId() {
       const code = (localStorage.getItem('well1367_usercode') || '').trim();
 
@@ -1406,32 +1379,46 @@
       return uid;
     }
 
-    async function loadStatsFromCloud() {
+    function refreshFooterStats() {
+      visitCount.textContent = Number(window.SITE_STATS.visits || 0).toLocaleString('ru-RU');
+      reactionCount.textContent = Number(window.SITE_STATS.likes || 0).toLocaleString('ru-RU');
+
+      document.querySelectorAll('.item').forEach(item => {
+        const artId = item.dataset.artId;
+        const info = window.SITE_STATS.artLikes[artId] || {};
+        const label = item.querySelector('.like-count');
+        const button = item.querySelector('.like-button');
+        const icon = item.querySelector('.like-icon');
+
+        if (label) {
+          label.textContent = Number(info.count || 0).toLocaleString('ru-RU');
+        }
+
+        if (button && icon) {
+          const liked = Boolean(info.liked);
+
+          button.classList.toggle('liked', liked);
+          icon.src = liked ? 'images/like-on.png' : 'images/like-off.png';
+        }
+      });
+    }
+
+    async function loadSiteData() {
       if (!isSupabaseConfigured()) return;
 
       try {
-        const [statsResult, likesResult] = await Promise.all([
-          sb.from('stats').select('name,count'),
-          sb.from('art_likes').select('art_id,count')
-        ]);
+        const uid = getOrCreateUserId();
 
-        if (statsResult.error) throw statsResult.error;
-
-        (statsResult.data || []).forEach(row => {
-          if (row.name === 'visits') {
-            window.SITE_STATS.visits = Number(row.count || 0);
-          }
-
-          if (row.name === 'likes') {
-            window.SITE_STATS.likes = Number(row.count || 0);
-          }
-        });
-
-        if (!likesResult.error) {
-          (likesResult.data || []).forEach(row => {
-            window.SITE_STATS.artLikes[row.art_id] = Number(row.count || 0);
+        const { data, error } = await sb
+          .rpc('get_site_data', {
+            p_user_id: uid
           });
-        }
+
+        if (error) throw error;
+
+        window.SITE_STATS.visits = Number(data.visits || 0);
+        window.SITE_STATS.likes = Number(data.likes || 0);
+        window.SITE_STATS.artLikes = data.art_likes || {};
 
         refreshFooterStats();
 
@@ -1440,7 +1427,7 @@
           await addVisit();
         }
       } catch (error) {
-        console.warn('Не удалось загрузить статистику:', error);
+        console.error('Ошибка загрузки данных Supabase:', error);
       }
     }
 
@@ -1449,124 +1436,40 @@
 
       try {
         const { data, error } = await sb
-          .rpc('increment_stat', {
-            p_name: 'visits',
-            p_delta: 1
-          });
+          .rpc('add_visit');
 
         if (error) throw error;
 
-        const row = Array.isArray(data) ? data[0] : data;
-
-        if (row) {
-          window.SITE_STATS.visits = Number(row.count || 0);
-        }
-
+        window.SITE_STATS.visits = Number(data || window.SITE_STATS.visits);
         refreshFooterStats();
       } catch (error) {
-        console.warn('Не удалось увеличить посещения:', error);
+        console.error('Ошибка добавления посещения:', error);
       }
     }
 
     window.syncLike = async function (artId) {
-      if (!isSupabaseConfigured()) return;
-
-      const wasLiked = isArtLikedAny(artId);
-      const uid = getOrCreateUserId();
-      const delta = wasLiked ? -1 : 1;
-
-      try {
-        const { data: current, error: readError } = await sb
-          .from('art_likes')
-          .select('count,users')
-          .eq('art_id', artId)
-          .single();
-
-        if (readError && readError.code !== 'PGRST116') {
-          throw readError;
-        }
-
-        const users = Array.isArray(current?.users) ? [...current.users] : [];
-        const oldCount = Number(current?.count || 0);
-
-        let newUsers = users;
-
-        if (wasLiked) {
-          newUsers = users.filter(id => id !== uid);
-        } else if (!users.includes(uid)) {
-          newUsers = [...users, uid];
-        }
-
-        const newCount = Math.max(0, oldCount + delta);
-
-        const { error: writeError } = await sb
-          .from('art_likes')
-          .upsert({
-            art_id: artId,
-            count: newCount,
-            users: newUsers
-          }, {
-            onConflict: 'art_id'
-          });
-
-        if (writeError) throw writeError;
-
-        const { error: statError } = await sb
-          .rpc('increment_stat', {
-            p_name: 'likes',
-            p_delta: delta
-          });
-
-        if (statError) throw statError;
-
-        window.SITE_STATS.artLikes[artId] = newCount;
-        window.SITE_STATS.likes = Math.max(0, Number(window.SITE_STATS.likes || 0) + delta);
-
-        setArtLiked(artId, !wasLiked);
-        refreshFooterStats();
-      } catch (error) {
-        console.warn('Не удалось сохранить лайк:', error);
+      if (!isSupabaseConfigured()) {
+        console.error('Supabase не подключён.');
+        return;
       }
-    };
 
-    async function loadMyLikesFromCloud() {
-      if (!isSupabaseConfigured()) return;
+      const uid = getOrCreateUserId();
 
       try {
-        const uid = getOrCreateUserId();
         const { data, error } = await sb
-          .from('art_likes')
-          .select('art_id,users');
+          .rpc('toggle_like', {
+            p_art_id: artId,
+            p_user_id: uid
+          });
 
         if (error) throw error;
 
-        (data || []).forEach(row => {
-          const users = Array.isArray(row.users) ? row.users : [];
-          setArtLiked(row.art_id, users.includes(uid));
-        });
-
-        paintLikeButtons();
+        await loadSiteData();
       } catch (error) {
-        console.warn('Не удалось загрузить твои лайки:', error);
+        console.error('Ошибка сохранения лайка:', error);
+        alert('Лайк не сохранился. Проверь SQL в Supabase.');
       }
-    }
-
-    function paintLikeButtons() {
-      document.querySelectorAll('.item').forEach(item => {
-        const artId = item.dataset.artId;
-        const button = item.querySelector('.like-button');
-        const icon = item.querySelector('.like-icon');
-
-        if (!button || !icon) return;
-
-        const liked = isArtLikedAny(artId);
-
-        button.classList.toggle('liked', liked);
-        icon.src = liked ? 'images/like-on.png' : 'images/like-off.png';
-      });
-
-      refreshFooterStats();
-    }
+    };
 
     window.getUserCode = function () {
       return (localStorage.getItem('well1367_usercode') || '').trim();
@@ -1579,69 +1482,4 @@
 
       const refreshLabel = () => {
         const code = window.getUserCode();
-        button.textContent = code ? '👤 ' + code : '👤 Код';
-      };
-
-      button.addEventListener('click', () => {
-        const value = prompt(
-          'Придумай один код и введи его одинаково на телефоне и компьютере.\n' +
-          'Например: well1367\n\n' +
-          'Оставь пустым, чтобы сбросить.',
-          window.getUserCode()
-        );
-
-        if (value === null) return;
-
-        const clean = value.trim().replace(/[^A-Za-zА-Яа-я0-9_-]/g, '').slice(0, 32);
-
-        if (clean) {
-          localStorage.setItem('well1367_usercode', clean);
-        } else {
-          localStorage.removeItem('well1367_usercode');
-        }
-
-        refreshLabel();
-        loadMyLikesFromCloud();
-      });
-
-      refreshLabel();
-    })();
-
-    setInterval(async () => {
-      if (!isSupabaseConfigured()) return;
-
-      try {
-        const [statsResult, likesResult] = await Promise.all([
-          sb.from('stats').select('name,count'),
-          sb.from('art_likes').select('art_id,count')
-        ]);
-
-        if (!statsResult.error) {
-          (statsResult.data || []).forEach(row => {
-            if (row.name === 'visits') {
-              window.SITE_STATS.visits = Number(row.count || 0);
-            }
-
-            if (row.name === 'likes') {
-              window.SITE_STATS.likes = Number(row.count || 0);
-            }
-          });
-        }
-
-        if (!likesResult.error) {
-          (likesResult.data || []).forEach(row => {
-            window.SITE_STATS.artLikes[row.art_id] = Number(row.count || 0);
-          });
-        }
-
-        refreshFooterStats();
-      } catch (error) {
-        /* тихо */
-      }
-    }, 10000);
-
-    loadStatsFromCloud();
-    loadMyLikesFromCloud();
-  </script>
-</body>
-</html>
+        button.textContent = code ? '👤 ' + code : '👤

@@ -55,7 +55,6 @@
       inset: 0;
       z-index: -2;
       pointer-events: none;
-
       background-image: url("images/background.png");
       background-color: #0a0a0f;
       background-size: cover;
@@ -182,13 +181,11 @@
         #ff00cc,
         #ff0000
       );
-
       background-size: 200% 100%;
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
       -webkit-text-fill-color: transparent;
-
       animation: rainbowMove 6s linear infinite;
     }
 
@@ -213,12 +210,8 @@
     }
 
     @keyframes rainbowMove {
-      from {
-        background-position: 0% 50%;
-      }
-      to {
-        background-position: 200% 50%;
-      }
+      from { background-position: 0% 50%; }
+      to { background-position: 200% 50%; }
     }
 
     .author {
@@ -1113,8 +1106,12 @@
         <span id="reactionCount">0</span>
       </div>
 
-      <button type="button" id="userCodeBtn" title="Код пользователя для синхронизации лайков между устройствами"
-        style="margin-top:10px;background:none;border:1px solid currentColor;border-radius:8px;padding:4px 10px;color:inherit;font:inherit;cursor:pointer;opacity:.75;">
+      <button
+        type="button"
+        id="userCodeBtn"
+        title="Код пользователя для синхронизации лайков между устройствами"
+        style="margin-top:10px;background:none;border:1px solid currentColor;border-radius:8px;padding:4px 10px;color:inherit;font:inherit;cursor:pointer;opacity:.75;"
+      >
         👤 Код
       </button>
     </div>
@@ -1147,6 +1144,8 @@
     const avatarSpeech = document.getElementById('avatarSpeech');
     const body = document.body;
 
+    const LIKED_KEY = 'well1367_art_likes';
+
     function closeWelcome() {
       welcome.classList.add('hidden');
 
@@ -1160,14 +1159,11 @@
 
     function getLikes() {
       try {
-        return JSON.parse(localStorage.getItem('well1367_art_likes') || '{}');
+        return JSON.parse(localStorage.getItem(LIKED_KEY) || '{}');
       } catch {
         return {};
       }
     }
-
-    // Ключ в localStorage, в котором хранится "уже лайкнуто" по каждому арту
-    const LIKED_KEY = 'well1367_art_likes';
 
     function isArtLiked(artId) {
       try {
@@ -1178,7 +1174,6 @@
       }
     }
 
-    // Проверяем обе схемы ключей (старую и новую), чтобы ничего не потерялось
     function isArtLikedAny(artId) {
       if (isArtLiked(artId)) return true;
       return localStorage.getItem('well1367_liked_' + artId) === 'true';
@@ -1187,46 +1182,28 @@
     function setArtLiked(artId, liked) {
       try {
         const map = JSON.parse(localStorage.getItem(LIKED_KEY) || '{}');
+
         if (liked) {
           map[artId] = true;
         } else {
           delete map[artId];
         }
+
         localStorage.setItem(LIKED_KEY, JSON.stringify(map));
       } catch {}
     }
 
-    function saveLikes(likes) {
-      localStorage.setItem('well1367_art_likes', JSON.stringify(likes));
-    }
-
     function updateReactionCount() {
-      // Если Supabase подключён — счётчик реакций ведёт облако (см. refreshFooterStats)
-      if (typeof window.SITE_STATS !== 'undefined') {
+      if (window.SITE_STATS) {
         reactionCount.textContent = Number(window.SITE_STATS.likes || 0).toLocaleString('ru-RU');
         return;
       }
+
       const likes = getLikes();
-      const totalReactions = Object.values(likes).filter(Boolean).length;
+      const total = Object.values(likes).filter(Boolean).length;
 
-      reactionCount.textContent = totalReactions.toLocaleString('ru-RU');
+      reactionCount.textContent = total.toLocaleString('ru-RU');
     }
-
-    function getVisitCount() {
-      return Number(localStorage.getItem('well1367_visits') || 0);
-    }
-
-    function countVisit() {
-      const visits = getVisitCount() + 1;
-
-      localStorage.setItem('well1367_visits', String(visits));
-      visitCount.textContent = visits.toLocaleString('ru-RU');
-    }
-
-    // Счётчики ведёт облако (Supabase). Локальные функции countVisit/updateReactionCount
-    // остаются только как запасной вариант, если облако недоступно.
-    // Здесь намеренно НЕ увеличиваем локальный счётчик — иначе цифры будут расходиться.
-    updateReactionCount();
 
     let speechTimer;
 
@@ -1287,55 +1264,32 @@
           height="18"
           loading="lazy"
         >
-        <span class="like-count">${isLiked ? '1' : '0'}</span>
+        <span class="like-count">0</span>
       `;
 
       likeButton.addEventListener('click', async event => {
         event.stopPropagation();
 
         const wasLiked = isArtLikedAny(artId);
-
-        // 1) Мгновенный отклик интерфейса (локально)
-        setArtLiked(artId, !wasLiked);
-
         const nowLiked = !wasLiked;
 
-        likeButton.classList.toggle('liked', nowLiked);
+        setArtLiked(artId, nowLiked);
 
+        likeButton.classList.toggle('liked', nowLiked);
         likeButton.querySelector('.like-icon').src = nowLiked
           ? 'images/like-on.png'
           : 'images/like-off.png';
 
-        likeButton.querySelector('.like-count').textContent = nowLiked ? '1' : '0';
-
-        updateReactionCount();
-
         likeButton.classList.remove('animate');
-
         void likeButton.offsetWidth;
-
         likeButton.classList.add('animate');
 
         setTimeout(() => {
           likeButton.classList.remove('animate');
         }, 700);
 
-        // 2) Отправка в облако (синхронизация между устройствами).
-        //    syncLike сам решит, был ли лайк, поэтому при ошибке сети откатим локальное состояние.
         if (typeof window.syncLike === 'function') {
-          const before = isArtLikedAny(artId);
           await window.syncLike(artId);
-          const after = isArtLikedAny(artId);
-          if (before === after) {
-            // запись в облако не удалась — возвращаем как было
-            setArtLiked(artId, wasLiked);
-            likeButton.classList.toggle('liked', wasLiked);
-            likeButton.querySelector('.like-icon').src = wasLiked
-              ? 'images/like-on.png'
-              : 'images/like-off.png';
-            likeButton.querySelector('.like-count').textContent = wasLiked ? '1' : '0';
-            updateReactionCount();
-          }
         }
       });
 
@@ -1355,16 +1309,13 @@
       }
 
       item.classList.remove('clicked');
-
       void item.offsetWidth;
-
       item.classList.add('clicked');
 
       setTimeout(() => {
         modalImg.src = item.dataset.src;
         modal.classList.add('active');
         body.style.overflow = 'hidden';
-
         item.classList.remove('clicked');
       }, 520);
     });
@@ -1403,207 +1354,291 @@
     updateToggleText();
   </script>
 
-  <!-- ================= SUPABASE (синхронизация между устройствами) ================= -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
-    // >>> ВСТАВЬ СЮДА СВОИ ДАННЫЕ ИЗ SUPABASE:
-    // Project Settings -> Data API -> Project URL и Publishable key (anon key)
     const SUPABASE_URL = 'https://yonhqkjnonygeqdyutiw.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_85igzGFOPWb0gn2rbj7aNQ_7XnedNj6';
 
-    if (typeof window.supabase === 'undefined') {
-      console.warn('Библиотека Supabase не загрузилась — сайт работает без синхронизации.');
-    }
-
-    const sb = (typeof window.supabase !== 'undefined')
+    const sb = window.supabase
       ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
       : null;
 
-    // Глобальное состояние, синхронизируемое с Supabase
-    window.SITE_STATS = { visits: 0, likes: 0 };
-
-    function isSupabaseConfigured() {
-      return sb !== null
-        && SUPABASE_URL.startsWith('https://')
-        && !SUPABASE_URL.includes('ВАШ_КОД_ПРОЕКТА');
-    }
-
-    // Обновление цифр в футере ("Заходов на сайт" / "Количество реакций")
-    window.refreshFooterStats = function () {
-      visitCount.textContent = Number(window.SITE_STATS.visits || 0).toLocaleString('ru-RU');
-      reactionCount.textContent = Number(window.SITE_STATS.likes || 0).toLocaleString('ru-RU');
+    window.SITE_STATS = {
+      visits: 0,
+      likes: 0,
+      artLikes: {}
     };
 
-    // Подсветка кнопок лайков, которые этот пользователь уже ставил
-    function paintLikeButtons() {
+    function isSupabaseConfigured() {
+      return Boolean(sb);
+    }
+
+    function refreshFooterStats() {
+      visitCount.textContent = Number(window.SITE_STATS.visits || 0).toLocaleString('ru-RU');
+      reactionCount.textContent = Number(window.SITE_STATS.likes || 0).toLocaleString('ru-RU');
+
       document.querySelectorAll('.item').forEach(item => {
-        const id = item.dataset.artId;
-        if (!id) return;
-        const liked = isArtLikedAny(id);
-        const btn = item.querySelector('.like-button');
-        if (!btn) return;
-        btn.classList.toggle('liked', liked);
-        btn.querySelector('.like-icon').src = liked ? 'images/like-on.png' : 'images/like-off.png';
-        btn.querySelector('.like-count').textContent = liked ? '1' : '0';
+        const artId = item.dataset.artId;
+        const count = Number(window.SITE_STATS.artLikes[artId] || 0);
+        const label = item.querySelector('.like-count');
+
+        if (label) {
+          label.textContent = count.toLocaleString('ru-RU');
+        }
       });
     }
 
-    // Загрузка статистики из Supabase + засчёт одного захода на_visit (load)
+    function getOrCreateUserId() {
+      const code = (localStorage.getItem('well1367_usercode') || '').trim();
+
+      if (code) {
+        return 'c_' + code;
+      }
+
+      let uid = localStorage.getItem('well1367_uid');
+
+      if (!uid) {
+        uid = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem('well1367_uid', uid);
+      }
+
+      return uid;
+    }
+
     async function loadStatsFromCloud() {
       if (!isSupabaseConfigured()) return;
-      try {
-        const { data, error } = await sb.from('stats').select('name,count');
-        if (error) throw error;
-        const map = {};
-        (data || []).forEach(r => { map[r.name] = Number(r.count) || 0; });
-        window.SITE_STATS.visits = map.visits || 0;
-        window.SITE_STATS.likes = map.likes || 0;
-        refreshFooterStats();
-        paintLikeButtons();
 
-        // +1 визит (не чаще одного раза за сессию, чтобы не накручивать при обновлении)
+      try {
+        const [statsResult, likesResult] = await Promise.all([
+          sb.from('stats').select('name,count'),
+          sb.from('art_likes').select('art_id,count')
+        ]);
+
+        if (statsResult.error) throw statsResult.error;
+
+        (statsResult.data || []).forEach(row => {
+          if (row.name === 'visits') {
+            window.SITE_STATS.visits = Number(row.count || 0);
+          }
+
+          if (row.name === 'likes') {
+            window.SITE_STATS.likes = Number(row.count || 0);
+          }
+        });
+
+        if (!likesResult.error) {
+          (likesResult.data || []).forEach(row => {
+            window.SITE_STATS.artLikes[row.art_id] = Number(row.count || 0);
+          });
+        }
+
+        refreshFooterStats();
+
         if (!sessionStorage.getItem('well1367_counted')) {
           sessionStorage.setItem('well1367_counted', '1');
           await addVisit();
         }
-      } catch (e) {
-        console.warn('Supabase: не удалось загрузить статистику', e);
+      } catch (error) {
+        console.warn('Не удалось загрузить статистику:', error);
       }
     }
 
     async function addVisit() {
       if (!isSupabaseConfigured()) return;
+
       try {
         const { data, error } = await sb
-          .rpc('increment_stat', { p_name: 'visits', p_delta: 1 });
+          .rpc('increment_stat', {
+            p_name: 'visits',
+            p_delta: 1
+          });
+
         if (error) throw error;
+
         const row = Array.isArray(data) ? data[0] : data;
-        window.SITE_STATS.visits = Number(row?.count ?? window.SITE_STATS.visits + 1);
+
+        if (row) {
+          window.SITE_STATS.visits = Number(row.count || 0);
+        }
+
         refreshFooterStats();
-      } catch (e) {
-        console.warn('Supabase: не удалось увеличить счётчик посещений', e);
+      } catch (error) {
+        console.warn('Не удалось увеличить посещения:', error);
       }
     }
 
-    // Like/unlike конкретного арта через Supabase (атомарно, без гонок)
     window.syncLike = async function (artId) {
+      if (!isSupabaseConfigured()) return;
+
       const wasLiked = isArtLikedAny(artId);
+      const uid = getOrCreateUserId();
       const delta = wasLiked ? -1 : 1;
 
+      try {
+        const { data: current, error: readError } = await sb
+          .from('art_likes')
+          .select('count,users')
+          .eq('art_id', artId)
+          .single();
+
+        if (readError && readError.code !== 'PGRST116') {
+          throw readError;
+        }
+
+        const users = Array.isArray(current?.users) ? [...current.users] : [];
+        const oldCount = Number(current?.count || 0);
+
+        let newUsers = users;
+
+        if (wasLiked) {
+          newUsers = users.filter(id => id !== uid);
+        } else if (!users.includes(uid)) {
+          newUsers = [...users, uid];
+        }
+
+        const newCount = Math.max(0, oldCount + delta);
+
+        const { error: writeError } = await sb
+          .from('art_likes')
+          .upsert({
+            art_id: artId,
+            count: newCount,
+            users: newUsers
+          }, {
+            onConflict: 'art_id'
+          });
+
+        if (writeError) throw writeError;
+
+        const { error: statError } = await sb
+          .rpc('increment_stat', {
+            p_name: 'likes',
+            p_delta: delta
+          });
+
+        if (statError) throw statError;
+
+        window.SITE_STATS.artLikes[artId] = newCount;
+        window.SITE_STATS.likes = Math.max(0, Number(window.SITE_STATS.likes || 0) + delta);
+
+        setArtLiked(artId, !wasLiked);
+        refreshFooterStats();
+      } catch (error) {
+        console.warn('Не удалось сохранить лайк:', error);
+      }
+    };
+
+    async function loadMyLikesFromCloud() {
       if (!isSupabaseConfigured()) return;
 
       try {
-        // 1) Атомарно меняем общий счётчик лайков
-        const { data, error } = await sb
-          .rpc('increment_stat', { p_name: 'likes', p_delta: delta });
-        if (error) throw error;
-        const row = Array.isArray(data) ? data[0] : data;
-        window.SITE_STATS.likes = Math.max(0, Number(row?.count ?? window.SITE_STATS.likes + delta));
-
-        // 2) Запоминаем, кто именно лайкнул (для синхронизации между устройствами).
-        //    id пользователя храним в localStorage — он постоянен на устройстве,
-        //    а список "кто лайкнул" живёт в облаке.
         const uid = getOrCreateUserId();
-        const {  likedRow, error: e2 } = await sb
-          .from('liked_users').select('users').eq('art_id', artId).single();
-        let users = Array.isArray(likedRow?.users) ? likedRow.users.slice() : [];
-        if (wasLiked) {
-          users = users.filter(u => u !== uid);
-        } else if (!users.includes(uid)) {
-          users.push(uid);
-        }
-        const { error: e3 } = await sb
-          .from('liked_users')
-          .upsert({ art_id: artId, users: users }, { onConflict: 'art_id' });
-        if (e3) console.warn('Supabase: не удалось сохранить список лайкнувших', e3);
-      } catch (e) {
-        console.warn('Supabase: ошибка записи лайка', e);
-        return; // если облако недоступно — не меняем локальное состояние
+        const { data, error } = await sb
+          .from('art_likes')
+          .select('art_id,users');
+
+        if (error) throw error;
+
+        (data || []).forEach(row => {
+          const users = Array.isArray(row.users) ? row.users : [];
+          setArtLiked(row.art_id, users.includes(uid));
+        });
+
+        paintLikeButtons();
+      } catch (error) {
+        console.warn('Не удалось загрузить твои лайки:', error);
       }
+    }
 
-      setArtLiked(artId, !wasLiked);
+    function paintLikeButtons() {
+      document.querySelectorAll('.item').forEach(item => {
+        const artId = item.dataset.artId;
+        const button = item.querySelector('.like-button');
+        const icon = item.querySelector('.like-icon');
+
+        if (!button || !icon) return;
+
+        const liked = isArtLikedAny(artId);
+
+        button.classList.toggle('liked', liked);
+        icon.src = liked ? 'images/like-on.png' : 'images/like-off.png';
+      });
+
       refreshFooterStats();
-    };
+    }
 
-    // ==== Идентификация пользователя между устройствами ====
-    // На каждом устройстве есть свой ID. Чтобы лайки синхронизировались
-    // между телефоном и компьютером — введите один и тот же "код пользователя"
-    // на обоих устройствах (кнопка «Код» в футере сайта).
     window.getUserCode = function () {
       return (localStorage.getItem('well1367_usercode') || '').trim();
     };
 
-    function getOrCreateUserId() {
-      const code = window.getUserCode();
-      if (code) return 'c_' + code; // общий код: одинаков на всех устройствах
-      let uid = localStorage.getItem('well1367_uid');
-      if (!uid) {
-        uid = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-        localStorage.setItem('well1367_uid', uid);
-      }
-      return uid;
-    }
-
-    // Кнопка ввода кода пользователя (в футере рядом со счётчиками)
     (function initUserCodeButton() {
-      const btn = document.getElementById('userCodeBtn');
-      if (!btn) return;
+      const button = document.getElementById('userCodeBtn');
+
+      if (!button) return;
+
       const refreshLabel = () => {
-        const c = window.getUserCode();
-        btn.textContent = c ? '👤 ' + c : '👤 Код';
-        btn.title = c
-          ? 'Код пользователя: ' + c + ' (нажмите, чтобы изменить)'
-          : 'Введите один и тот же код на всех ваших устройствах, чтобы лайки синхронизировались';
+        const code = window.getUserCode();
+        button.textContent = code ? '👤 ' + code : '👤 Код';
       };
-      btn.addEventListener('click', () => {
-        const cur = window.getUserCode();
-        const val = prompt(
-          'Придумайте ЛЮБОЙ код (например: maxim1367).\n' +
-          'Введите ЕГО ЖЕ на телефоне и на компьютере — тогда лайки будут общие.\n' +
-          'Оставьте пустым, чтобы сбросить.',
-          cur
+
+      button.addEventListener('click', () => {
+        const value = prompt(
+          'Придумай один код и введи его одинаково на телефоне и компьютере.\n' +
+          'Например: well1367\n\n' +
+          'Оставь пустым, чтобы сбросить.',
+          window.getUserCode()
         );
-        if (val === null) return; // отмена
-        const clean = val.trim().replace(/[^A-Za-zА-Яа-я0-9_-]/g, '').slice(0, 32);
+
+        if (value === null) return;
+
+        const clean = value.trim().replace(/[^A-Za-zА-Яа-я0-9_-]/g, '').slice(0, 32);
+
         if (clean) {
           localStorage.setItem('well1367_usercode', clean);
         } else {
           localStorage.removeItem('well1367_usercode');
         }
+
         refreshLabel();
-        loadMyLikesFromCloud(); // сразу перерисовать лайки под нового пользователя
+        loadMyLikesFromCloud();
       });
+
       refreshLabel();
     })();
 
-    // При загрузке подтягиваем из облака, какие арты уже лайкал ЭТОТ пользователь
-    async function loadMyLikesFromCloud() {
-      if (!isSupabaseConfigured()) return;
-      try {
-        const uid = getOrCreateUserId();
-        const { data, error } = await sb.from('liked_users').select('art_id,users');
-        if (error || !data) return;
-        data.forEach(row => {
-          const users = Array.isArray(row.users) ? row.users : [];
-          setArtLiked(row.art_id, users.includes(uid));
-        });
-        paintLikeButtons();
-      } catch (e) { /* тихо */ }
-    }
-
-    // Раз в 15 секунд подтягиваем актуальные цифры с сервера (синхронизация между устройствами)
     setInterval(async () => {
       if (!isSupabaseConfigured()) return;
+
       try {
-        const { data, error } = await sb.from('stats').select('name,count');
-        if (error || !data) return;
-        const map = {};
-        data.forEach(r => { map[r.name] = Number(r.count) || 0; });
-        window.SITE_STATS.visits = map.visits || 0;
-        window.SITE_STATS.likes = map.likes || 0;
+        const [statsResult, likesResult] = await Promise.all([
+          sb.from('stats').select('name,count'),
+          sb.from('art_likes').select('art_id,count')
+        ]);
+
+        if (!statsResult.error) {
+          (statsResult.data || []).forEach(row => {
+            if (row.name === 'visits') {
+              window.SITE_STATS.visits = Number(row.count || 0);
+            }
+
+            if (row.name === 'likes') {
+              window.SITE_STATS.likes = Number(row.count || 0);
+            }
+          });
+        }
+
+        if (!likesResult.error) {
+          (likesResult.data || []).forEach(row => {
+            window.SITE_STATS.artLikes[row.art_id] = Number(row.count || 0);
+          });
+        }
+
         refreshFooterStats();
-      } catch (e) { /* тихо */ }
-    }, 15000);
+      } catch (error) {
+        /* тихо */
+      }
+    }, 10000);
 
     loadStatsFromCloud();
     loadMyLikesFromCloud();
